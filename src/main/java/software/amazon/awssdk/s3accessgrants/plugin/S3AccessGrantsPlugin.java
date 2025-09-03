@@ -72,15 +72,14 @@ public class S3AccessGrantsPlugin  implements SdkPlugin, ToCopyableBuilder<Build
         return this.userAgent;
     }
 
-    ClientOverrideConfiguration overrideConfig = ClientOverrideConfiguration.builder()
-                    .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, userAgent()).build();
-
     /**
      * Change the configuration on the S3Clients to use S3 Access Grants specific AuthScheme and identityProviders.
      * @param config the existing configuration on the clients. Passed by the SDK on request path.
      * */
     @Override
     public void configureClient(SdkServiceClientConfiguration.Builder config) {
+        ClientOverrideConfiguration overrideConfig = ClientOverrideConfiguration.builder()
+                        .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, userAgent()).build();
         logger.info(() -> "Configuring S3 Clients to use S3 Access Grants as a permission layer!");
         logger.info(() -> "Running the S3 Access grants plugin with fallback setting enabled : "+enableFallback());
         if(!enableFallback()) {

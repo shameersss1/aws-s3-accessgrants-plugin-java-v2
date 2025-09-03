@@ -24,6 +24,11 @@ import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
 import software.amazon.awssdk.services.s3.auth.scheme.S3AuthSchemeProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class S3AccessGrantsPluginTests {
 
@@ -155,5 +160,39 @@ public class S3AccessGrantsPluginTests {
     @Test
     public void create_access_grants_plugin_with_not_permitted_userAgent_name() {
         Assertions.assertThatThrownBy(() -> S3AccessGrantsPlugin.builder().userAgent("testUserAgent/").build()).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void configureClient_concurrent_access_should_not_throw_null_pointer_exception() throws InterruptedException {
+        S3AccessGrantsPlugin accessGrantsPlugin = S3AccessGrantsPlugin.builder().build();
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger exceptionCount = new AtomicInteger(0);
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    SdkServiceClientConfiguration.Builder config = S3ServiceClientConfiguration.builder()
+                            .authSchemeProvider(S3AuthSchemeProvider.defaultProvider())
+                            .credentialsProvider(DefaultCredentialsProvider.create())
+                            .region(Region.US_EAST_2);
+                    
+                    accessGrantsPlugin.configureClient(config);
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    exceptionCount.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        Assertions.assertThat(successCount.get()).isEqualTo(threadCount);
+        Assertions.assertThat(exceptionCount.get()).isEqualTo(0);
     }
 }
