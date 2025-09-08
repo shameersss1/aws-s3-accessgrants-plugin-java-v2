@@ -18,6 +18,8 @@ package software.amazon.awssdk.s3accessgrants.plugin;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.assertj.core.api.Assertions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.SdkServiceClientConfiguration;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
@@ -31,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class S3AccessGrantsPluginTests {
+
+    private static final Logger logger = LoggerFactory.getLogger(S3AccessGrantsPluginTests.class);
 
     @BeforeClass
     public static void setUp() {
@@ -183,6 +187,7 @@ public class S3AccessGrantsPluginTests {
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     exceptionCount.incrementAndGet();
+                    logger.error("An error occurred: ", e);
                 } finally {
                     latch.countDown();
                 }
